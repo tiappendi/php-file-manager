@@ -390,12 +390,14 @@ function unpackFile($file, $path){
 }
 
 function packDir($source, $destination){
+    $txt = "";
     if (!extension_loaded('zip') || !file_exists($source)) return false;
     $zip = new ZipArchive();
     if (!$zip->open($destination, ZIPARCHIVE::CREATE)) return false;
-    $source = str_replace('\\', '/', realpath($source));
-    if (is_dir($source) === true){
-        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($source), RecursiveIteratorIterator::SELF_FIRST);
+    $sourcePath = str_replace('\\', '/', realpath($source));
+    if (is_dir($sourcePath) === true){
+        $zip->addEmptyDir(str_replace($sourcePath . '/', '', $source . '/'));
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($sourcePath), RecursiveIteratorIterator::SELF_FIRST);
         foreach ($files as $file){
             $file = str_replace('\\', '/', $file);
             // Ignore "." and ".." folders
@@ -403,13 +405,13 @@ function packDir($source, $destination){
                 continue;
             $file = realpath($file);
             if (is_dir($file) === true){
-                $zip->addEmptyDir(str_replace($source . '/', '', $file . '/'));
+                $zip->addEmptyDir(str_replace($sourcePath . '/', '', $source . '/' . $file . '/'));
             } else if (is_file($file) === true){
-                $zip->addFromString(str_replace($source . '/', '', $file), file_get_contents($file));
+                $zip->addFromString(str_replace($sourcePath . '/', '', $source . '/' . $file), file_get_contents($file));
             }
         }
-    } else if (is_file($source) === true){
-        $zip->addFromString(basename($source), file_get_contents($source));
+    } else if (is_file($sourcePath) === true){
+        $zip->addFromString(basename($sourcePath), file_get_contents($sourcePath));
     }
     return $zip->close();
 }
