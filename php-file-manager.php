@@ -391,12 +391,19 @@ function unpackFile($file, $path){
 
 function packDir($source, $destination){
     $txt = "";
-    if (!extension_loaded('zip') || !file_exists($source)) return false;
+    if (!extension_loaded('zip') || ($source != "" && !file_exists($source))) return false;
     $zip = new ZipArchive();
     if (!$zip->open($destination, ZIPARCHIVE::CREATE)) return false;
-    $sourcePath = str_replace('\\', '/', realpath($source));
+    
+    if($source == ""){ // packing root dir
+        $sourcePath = str_replace('\\', '/', realpath(__DIR__));
+    } else {
+        $sourcePath = str_replace('\\', '/', realpath($source));
+    }
     if (is_dir($sourcePath) === true){
-        $zip->addEmptyDir(str_replace($sourcePath . '/', '', $source . '/'));
+        if($source != ""){
+            $zip->addEmptyDir(str_replace($sourcePath . '/', '', $source . '/'));
+        }
         $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($sourcePath), RecursiveIteratorIterator::SELF_FIRST);
         foreach ($files as $file){
             $file = str_replace('\\', '/', $file);
@@ -489,8 +496,10 @@ function recursiveChmod($path, $recursively, $filesChange, $foldersChange, $file
 
 function printFolderTable($folder){
     echo "<h3>List directory " . realpath($folder) . "</h3>";
-    $newDir = "<span class=\"glyphicon glyphicon-plus\" aria-hidden=\"true\" style=\"cursor:pointer; top: 0px\" onclick=\"showMkdDlg(this)\" title=\"Create new directory...\"></span>";
-    echo "<button class=\"btn btn-default\" style=\"margin: 0% 5%;\">$newDir</button>";
+    $newDir = "<span class=\"glyphicon glyphicon-plus\" aria-hidden=\"true\" style=\"cursor:pointer; top: 0px\" title=\"Create new directory...\"></span>";
+    $packRoot = "<span class=\"glyphicon glyphicon-compressed\" aria-hidden=\"true\" style=\"cursor:pointer; top: 0px\" title=\"Pack root directory to ZIP...\"></span>";
+    echo "<button class=\"btn btn-default\" style=\"margin: 0% 0% 0% 5%;\" onclick=\"showMkdDlg(this)\">$newDir</button>";
+    echo "<button class=\"btn btn-default\" style=\"margin-left: 5px;\" onclick=\"showPckDlg(this)\">$packRoot</button>";
     echo "<table class=\"table table-bordered table-hover table-striped\" style=\"margin: 5px 5%; width: 90%\">";
     $contents = scandir($folder);
     echo "<tr>"
