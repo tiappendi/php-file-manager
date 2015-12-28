@@ -414,11 +414,11 @@ function packDir($source, $destination){
             if (is_dir($file) === true){
                 $zip->addEmptyDir(str_replace($sourcePath . '/', '', $source . '/' . $file . '/'));
             } else if (is_file($file) === true){
-                $zip->addFromString(str_replace($sourcePath . '/', '', $source . '/' . $file), file_get_contents($file));
+                $zip->addFile($file,str_replace($sourcePath . '/', '', $source . '/' . $file));
             }
         }
     } else if (is_file($sourcePath) === true){
-        $zip->addFromString(basename($sourcePath), file_get_contents($sourcePath));
+        $zip->addFile($file,basename($sourcePath));
     }
     return $zip->close();
 }
@@ -542,7 +542,7 @@ function printFolderTable($folder){
         
         $packIcon = "<span class=\"glyphicon glyphicon glyphicon-compressed\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 2px\" onclick=\"showPckDlg(this)\" title=\"Pack to zip...\"></span>";
         $unpackIcon = strtoupper($ext) == "ZIP"?"<span class=\"glyphicon glyphicon-open-file\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 2px\" onclick=\"showUnpDlg(this)\" title=\"Unpack...\"></span>":"";
-        echo "<tr data-level=\"0\" title=\"".print_r($dirData, TRUE)."\">"
+        echo "<tr data-level=\"0\" >"
                 . "<td id=\"type\" style=\"width: 70px\"><span class=\"$icon\" style=\"$cursor $iconColor\" title=\"$title\" onclick=\"$click\" aria-hidden=\"true\"></span></td>"
                 . "<td id=\"name\">$line</td>"
                 . "<td id=\"size\" style=\"width: 120px\">$size</td>"
@@ -588,7 +588,7 @@ function expandFolder($path, $level) {
         $changePerm = "<span class=\"glyphicon glyphicon-pencil\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 5px\" onclick=\"showPrmDlg(this)\" title=\"Change permissions...\"></span>";
         $deleteIcon = "<span class=\"glyphicon glyphicon-remove\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 5px\" onclick=\"showDltDlg(this)\" title=\"Delete...\"></span>";
         $unpackIcon = "<span class=\"glyphicon glyphicon-open-file\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 5px\" onclick=\"showUnpDlg(this)\" title=\"Unpack...\"></span>";
-        echo "<tr data-level=\"$level\" data-parent=\"$path\" title=\"".print_r($dirData, TRUE)."\">"
+        echo "<tr data-level=\"$level\" data-parent=\"$path\">"
         . "<td id=\"type\" style=\"width: 70px\"><span class=\"$icon\" style=\"$cursor $margin $iconColor\" title=\"$title\" onclick=\"$click\" aria-hidden=\"true\"></span></td>"
         . "<td id=\"name\">$line</td>"
         . "<td id=\"size\">$size</td>"
