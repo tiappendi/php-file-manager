@@ -53,6 +53,12 @@ switch ($action) {
         $("DIV#unpackModal").modal("show");
     }
     
+    function showPckDlg(src){
+        var path = $(src).parents("TR").find("TD#name").html();
+        $("DIV#packModal DIV.modal-header H4#heading SPAN").html(path);
+        $("DIV#packModal").modal("show");
+    }
+    
     function showMkdDlg(src){
         var path = $(src).parents("TR").find("TD#name").html();
         $("DIV#mkDirModal DIV.modal-header H4#heading SPAN").html(path);
@@ -133,6 +139,16 @@ switch ($action) {
             $("DIV#showLog").modal("show");
         });
     }
+    
+    function pack(){
+        var path = $("DIV#packModal DIV.modal-header H4#heading SPAN").html();
+        var file = $("DIV#packModal TR#filename INPUT[type='text']").val();
+        $.ajax({
+            url: "php-file-manager.php?action=pack&file="+file+"&path="+path,
+        }).done(function( data ) {
+            location.reload();
+        });
+    }
             
     
     function expandFolder(src){
@@ -186,7 +202,6 @@ switch ($action) {
     case "makeDir":
         $path = filter_input(INPUT_GET, "path")==""?"":filter_input(INPUT_GET, "path") . "/";
         $name = filter_input(INPUT_GET, "name");
-        error_log("Creating directory " . __DIR__ . "/" . $path . $name);
         mkdir(__DIR__ . "/" . $path . $name, 0755);
         exit();
         break;
@@ -196,7 +211,12 @@ switch ($action) {
         unpackFile($file, $path);
         exit();
         break;    
-    
+    case "pack":
+        $path = filter_input(INPUT_GET, "path");
+        $file = filter_input(INPUT_GET, "file") . ".zip";
+        packDir($path, $file);
+        exit();
+        break; 
     
     case "changeChmod":
         $path = filter_input(INPUT_GET, "path");
@@ -252,6 +272,27 @@ switch ($action) {
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
         <button type="button" class="btn btn-primary" onclick="unPack()">Unpack</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal - pack -->
+<div class="modal fade" id="packModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="heading">Pack <span></span></h4>
+      </div>
+      <div class="modal-body">
+          <table>
+              <tr id="filename"><td>File name:</td><td style="padding-left: 15px"><input type="text" value="archive" style="margin-left: 5px">.zip</td></tr>
+           </table>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="pack()">Pack</button>
       </div>
     </div>
   </div>
@@ -347,6 +388,32 @@ function unpackFile($file, $path){
         }
     }
 }
+
+function packDir($source, $destination){
+    if (!extension_loaded('zip') || !file_exists($source)) return false;
+    $zip = new ZipArchive();
+    if (!$zip->open($destination, ZIPARCHIVE::CREATE)) return false;
+    $source = str_replace('\\', '/', realpath($source));
+    if (is_dir($source) === true){
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($source), RecursiveIteratorIterator::SELF_FIRST);
+        foreach ($files as $file){
+            $file = str_replace('\\', '/', $file);
+            // Ignore "." and ".." folders
+            if( in_array(substr($file, strrpos($file, '/')+1), array('.', '..')) )
+                continue;
+            $file = realpath($file);
+            if (is_dir($file) === true){
+                $zip->addEmptyDir(str_replace($source . '/', '', $file . '/'));
+            } else if (is_file($file) === true){
+                $zip->addFromString(str_replace($source . '/', '', $file), file_get_contents($file));
+            }
+        }
+    } else if (is_file($source) === true){
+        $zip->addFromString(basename($source), file_get_contents($source));
+    }
+    return $zip->close();
+}
+
 
 function delete_directory($path) {
     echo "Deleting Contents Of: $path<br /><br />";
@@ -458,18 +525,19 @@ function printFolderTable($folder){
         } else {
             $size = $size . " B";
         }
-        $changePerm = "<span class=\"glyphicon glyphicon-pencil\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 5px\" onclick=\"showPrmDlg(this)\" title=\"Change permissions...\"></span>";
-        $deleteIcon = "<span class=\"glyphicon glyphicon-remove\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 5px\" onclick=\"showDltDlg(this)\" title=\"Delete...\"></span>";
+        $changePerm = "<span class=\"glyphicon glyphicon-pencil\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 2px\" onclick=\"showPrmDlg(this)\" title=\"Change permissions...\"></span>";
+        $deleteIcon = "<span class=\"glyphicon glyphicon-remove\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 2px\" onclick=\"showDltDlg(this)\" title=\"Delete...\"></span>";
         $ext = pathinfo($line, PATHINFO_EXTENSION);
         
-        $unpackIcon = strtoupper($ext) == "ZIP"?"<span class=\"glyphicon glyphicon-open-file\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 5px\" onclick=\"showUnpDlg(this)\" title=\"Unpack...\"></span>":"";
+        $packIcon = "<span class=\"glyphicon glyphicon glyphicon-compressed\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 2px\" onclick=\"showPckDlg(this)\" title=\"Pack to zip...\"></span>";
+        $unpackIcon = strtoupper($ext) == "ZIP"?"<span class=\"glyphicon glyphicon-open-file\" aria-hidden=\"true\" style=\"cursor:pointer; margin: 0px 2px\" onclick=\"showUnpDlg(this)\" title=\"Unpack...\"></span>":"";
         echo "<tr data-level=\"0\" title=\"".print_r($dirData, TRUE)."\">"
                 . "<td id=\"type\" style=\"width: 70px\"><span class=\"$icon\" style=\"$cursor $iconColor\" title=\"$title\" onclick=\"$click\" aria-hidden=\"true\"></span></td>"
                 . "<td id=\"name\">$line</td>"
                 . "<td id=\"size\" style=\"width: 120px\">$size</td>"
                 . "<td id=\"fileCount\" style=\"width: 120px\">$count</td>"
                 . "<td id=\"perm\" style=\"width: 120px\">$perm</td>"
-                . "<td style=\"width: 120px\">$changePerm $unpackIcon $deleteIcon</td>"
+                . "<td style=\"width: 120px\">$changePerm $packIcon $unpackIcon $deleteIcon</td>"
                 . "</tr>";
     }
     echo "</table>";
