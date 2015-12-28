@@ -12,3 +12,5 @@ Available function:
 The main magic of it is that all the operations are made by php functions, which means server is doing them. So everything is much faster than doing it classicaly via FTP.
 
 Useful for website administrators, which needs to move their projects to different servers.
+
+This project is written to be one-file only. Only resources it uses are jQuery and bootstrap libraries, delivered over CDN. If you want to make it work offline, just edit the header with resources locations.
